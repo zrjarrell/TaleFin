@@ -1,0 +1,359 @@
+summary(m2)
+m1 = aov(data$IL13~data$class)
+summary(m1)
+TukeyHSD(m1)
+m2 = aov(IL13 ~ cadmium + rsv + cadmium:rsv, data = data)
+summary(m2)
+m1 = aov(data$IFNg~data$class)
+summary(m1)
+TukeyHSD(m1)
+m2 = aov(IFNg ~ cadmium + rsv + cadmium:rsv, data = data)
+summary(m2)
+m1 = aov(data$RANTES~data$class)
+summary(m1)
+TukeyHSD(m1)
+m2 = aov(RANTES ~ cadmium + rsv + cadmium:rsv, data = data)
+summary(m2)
+m1 = aov(data$KC~data$class)
+summary(m1)
+TukeyHSD(m1)
+m2 = aov(KC ~ cadmium + rsv + cadmium:rsv, data = data)
+summary(m2)
+data = read.csv(file.choose())
+head(data,1)
+model = aov(data$fig3a~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3b~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3c~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3d~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3e~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3f~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3g~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig3h~data$class)
+summary(model)
+TukeyHSD(model)
+head(data,1)
+model = aov(data$fig4b~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig4d~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig4f~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig5a~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig5b~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig5c~data$class)
+summary(model)
+TukeyHSD(model)
+model = aov(data$fig5e~data$class)
+summary(model)
+TukeyHSD(model)
+library(xmsPANDA)
+library(limma)
+normalizeQuantiles(data)
+data
+data[2:16]
+datal = data[2:16]
+normalizeQuantiles(datal)
+datal2 = log(data, base = exp(2))
+write.csv(datal, /Users/zrj/Desktop/rsv-cd_metab-data_transformed.csv)
+write.csv(datal, "/Users/zrj/Desktop/rsv-cd_metab-data_transformed.csv")
+datanq = normalizeQuantiles(datal)
+datanq2 = log(datanq, base = exp(2))
+datanq2
+datanq
+write.csv(datanq2, "/Users/zrj/Desktop/rsv-cd_metab-data_transformed.csv")
+datanorm = read.csv(file.choose())
+head(datanorm,1)
+model = aov(datanorm$fig3a~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3b~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3c~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3d~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3e~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3f~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3g~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig3h~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig4b~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig4d~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig4f~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig4f~datanorm$class)
+model = aov(datanorm$fig5a~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig5b~datanorm$class)
+summary(model)
+TukeyHSD(model)
+model = aov(datanorm$fig5c~datanorm$class)
+summary(model)
+TukeyHSD(model)
+data2 = read.csv("/Users/zrj/Desktop/rsv-cd_metab-data_transformed.csv", header=TRUE)
+head(data2,1)
+model = aov(datanorm$fig5e~datanorm$class)
+summary(model)
+model = aov(data2$fig5e~data2$class)
+summary(model)
+TukeyHSD(model)
+#tab-delimited file, first column is test variable, following columns are for sorting and grouping by nth-ile #
+input.table = "/Users/zrj/Documents/research/emory_cbl_2019-on/current_projects/pyc/pyc-chdwb-paper/chdwb_urine-plasma-match_pyc-creatinine-corrected/food_frequency/quintile_comparison/foodfreq_crecorr.txt"#
+number.of.groups = 5#
+#################################End user inputs########################################3#
+directory = dirname(input.table)#
+input.data = read.table(input.table, sep="\t", header=TRUE)#
+data = input.data[,-1]#
+rownames(data) = input.data[,1]#
+num.samples = length(rownames(data))#
+gr.size = round(num.samples / number.of.groups, 0)#
+output = data.frame(explanatory.variable = character(), low.mean = numeric(), high.mean = numeric(), t.statistic = numeric(), p.value = numeric(), stringsAsFactors = FALSE)#
+c = 2#
+while (c < (length(colnames(data))+1)) {#
+	datasort = data[order(data[c]),]#
+	low = datasort[1:gr.size,]#
+	high = datasort[(num.samples-gr.size+1):num.samples,]#
+	result = t.test(low[1], high[1])#
+	output[(c-1), ] = list(colnames(data)[c], mean(low[,1]), mean(high[,1]), result$statistic, result$p.value)#
+	c = c + 1#
+}
+output
+sortout = output[order(output[4]),]
+head(sortout)
+head(sortout, 10)
+sortout
+#tab-delimited file, first column is test variable, following columns are for sorting and grouping by nth-ile #
+input.table = "/Users/zrj/Documents/research/emory_cbl_2019-on/current_projects/pyc/pyc-chdwb-paper/chdwb_urine-plasma-match_pyc-creatinine-corrected/food_frequency/quintile_comparison/foodfreq_rawpyc2.txt"#
+number.of.groups = 5#
+#################################End user inputs########################################3#
+directory = dirname(input.table)#
+input.data = read.table(input.table, sep="\t", header=TRUE)#
+data = input.data[,-1]#
+rownames(data) = input.data[,1]#
+num.samples = length(rownames(data))#
+gr.size = round(num.samples / number.of.groups, 0)#
+output = data.frame(explanatory.variable = character(), low.mean = numeric(), high.mean = numeric(), t.statistic = numeric(), p.value = numeric(), stringsAsFactors = FALSE)#
+c = 2#
+while (c < (length(colnames(data))+1)) {#
+	datasort = data[order(data[c]),]#
+	low = datasort[1:gr.size,]#
+	high = datasort[(num.samples-gr.size+1):num.samples,]#
+	result = t.test(low[1], high[1])#
+	output[(c-1), ] = list(colnames(data)[c], mean(low[,1]), mean(high[,1]), result$statistic, result$p.value)#
+	c = c + 1#
+}
+sortout = output[order(output[4]),]
+sortout
+help(.libPaths)
+data = read.table("/Users/zrj/Documents/research/emory_cbl_2019-on/current_projects/pyc/pyc-chdwb-paper/chdwb_urine-plasma-match_pyc-creatinine-corrected/food_frequency/quintile_comparison/foodfreq_crecorr.txt", sep="\t", header = TRUE)
+head(data)
+cor.test(data$DT_SEL, data$crecorr_ss.pyc2g)
+#tab-delimited file, first column is test variable, following columns are for sorting and grouping by nth-ile #
+input.table = "/Users/zrj/Documents/research/emory_cbl_2019-on/current_projects/pyc/pyc-chdwb-paper/chdwb_urine-plasma-match_pyc-creatinine-corrected/food_frequency/quintile_comparison/foodfreq_rawpyc2.txt"#
+number.of.groups = 5
+directory = dirname(input.table)#
+input.data = read.table(input.table, sep="\t", header=TRUE)#
+data = input.data[,-1]#
+rownames(data) = input.data[,1]#
+num.samples = length(rownames(data))#
+gr.size = round(num.samples / number.of.groups, 0)#
+output = data.frame(explanatory.variable = character(), low.mean = numeric(), high.mean = numeric(), t.statistic = numeric(), p.value = numeric(), stringsAsFactors = FALSE)#
+c = 2#
+while (c < (length(colnames(data))+1)) {#
+	datasort = data[order(data[c]),]#
+	low = datasort[1:gr.size,]#
+	high = datasort[(num.samples-gr.size+1):num.samples,]#
+	result = t.test(low[1], high[1])#
+	output[(c-1), ] = list(colnames(data)[c], mean(low[,1]), mean(high[,1]), result$statistic, result$p.value)#
+	c = c + 1#
+}
+output
+head(ouput)
+head(output)
+outputSort = output[order(output[4]),]
+head(outputSort)
+outputSort[c(1, 4, 5),]
+outputSort[c(1, 4, 5)]
+#tab-delimited file, first column is test variable, following columns are for sorting and grouping by nth-ile #
+input.table = "/Users/zrj/Documents/research/emory_cbl_2019-on/current_projects/pyc/pyc-chdwb-paper/chdwb_urine-plasma-match_pyc-creatinine-corrected/food_frequency/quintile_comparison/foodfreq_crecorr.txt"#
+number.of.groups = 5#
+#################################End user inputs########################################3#
+directory = dirname(input.table)#
+input.data = read.table(input.table, sep="\t", header=TRUE)#
+data = input.data[,-1]#
+rownames(data) = input.data[,1]#
+num.samples = length(rownames(data))#
+gr.size = round(num.samples / number.of.groups, 0)#
+output = data.frame(explanatory.variable = character(), low.mean = numeric(), high.mean = numeric(), t.statistic = numeric(), p.value = numeric(), stringsAsFactors = FALSE)#
+c = 2#
+while (c < (length(colnames(data))+1)) {#
+	datasort = data[order(data[c]),]#
+	low = datasort[1:gr.size,]#
+	high = datasort[(num.samples-gr.size+1):num.samples,]#
+	result = t.test(low[1], high[1])#
+	output[(c-1), ] = list(colnames(data)[c], mean(low[,1]), mean(high[,1]), result$statistic, result$p.value)#
+	c = c + 1#
+}
+outputSort = output[order(output[4]),]
+outputSort
+kidney = c(289, 553, 15, 8313)
+plasma = c(3.6, 1.7, 0.3, 94.4)
+kidney = c(3.2, 6, 0.1, 90.7)
+df = data.frame(plasma, kidney)
+df
+organ = c("plasma", "plasma", "plasma", "plasma", "kidney", "kidney", "kidney", "kidney")
+group = c("a_comb", "b_sig", "c_imp", "d_nonsig", "a_comb", "b_sig", "c_imp", "d_nonsig")
+count = c(282, 140, 26, 7457, 289, 553, 15, 8313)
+df = data.frame(organ, group, count)
+df
+library(ggplot2)
+ggplot(df, aes(x = organ, fill = group)) + geom_bar()
+df[2:3]
+df[2:3, 1:4]
+df[1:4,2:3]
+plasmadata = df[1:4,2:3]
+kidneydata = df[5:8, 2:3]
+plasmadata
+kidneydata
+cat_var <- factor(c(rep("Group 1", 10),#
+                    rep("Group 2", 15),#
+                    rep("Group 3", 30),#
+                    rep("Group 4", 20)))
+cat_var
+cat <- table(cat_var)
+cat
+pie(plasmadata)
+plasmavar = factor(c(rep("a_comb", 282), rep("b_sig", 140), rep("c_imp", 26), rep("d_nonsig", 7457)))
+kidneyvar = factor(c(rep("a_comb", 289), rep("b_sig", 553), rep("c_imp", 15), rep("d_nonsig", 8313)))
+plasmatbl = table(plasmavar)
+kidneytbl = table(kidneyvar)
+pie(plasmatbl)
+pie(kidneytbl)
+plasmavar = factor(c(rep("b_comb", 282), rep("a_sig", 140), rep("c_imp", 26), rep("d_nonsig", 7457)))
+kidneyvar = factor(c(rep("b_comb", 289), rep("a_sig", 553), rep("c_imp", 15), rep("d_nonsig", 8313)))
+plasmatbl = table(plasmavar)
+kidneytbl = table(kidneyvar)
+pie(kidneytbl)
+plasmatbl
+kidneytbl
+pie(plasmatbl)
+pie(plasmatbl)+scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#DDDDDD"))
+pie(plasmatbl)+scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#EEEEEE"))
+pie(plasmatbl)
+pie(plasmatbl)+scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#EEEEEE"))
+data.frame(plasmatbl)
+plasmabar = ggplot(data.frame(plasmatbl), aes(x="", y=Freq, fill = plasmavar)) +geom_bar(width = 1, stat = "identity")
+plasmabar
+plasmapie = plasmabar + coord_polar("y", start=0)
+plasmapie
+kidneybar = ggplot(data.frame(kidneytbl), aes(x="", y=Freq, fill = kidneyvar)) +geom_bar(width = 1, stat = "identity")
+kidneypie = kidneybar + coord_polar("y", start=0)
+kidneypie
+plasmapie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#EEEEEE"))
+plasmapie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#999999"))
+plasmapie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#FFFFFF"))
+kidneypie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#FFFFFF")
+)
+plasmapie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#FFFFFF"))
+blank_theme <- theme_minimal()+#
+  theme(#
+  axis.title.x = element_blank(),#
+  axis.title.y = element_blank(),#
+  panel.border = element_blank(),#
+  panel.grid=element_blank(),#
+  axis.ticks = element_blank(),#
+  plot.title=element_text(size=14, face="bold")#
+  )
+plasmapie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#FFFFFF"))+blank_theme
+plasmapie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#b3b3e6"))+blank_theme
+kidneypie + scale_fill_manual(values=c("#72BFC5","#262673","#00B050", "#b3b3e6"))+blank_theme
+df = read.table("/Users/zrj/Desktop/cd-xi/pathway_summary_table.txt", header=TRUE, sep="\t")
+df
+df1 = data.frame(df[,-1], row.names=df[,1])
+df1
+df = read.table("/Users/zrj/Desktop/cd-xi/pathway_summary_table.txt", header=TRUE, sep="\t")
+df1 = data.frame(df[,-1], row.names=df[,1])
+df1
+color = colorRampPalette(c("blue3", "white", "red3"))(20)
+corrplot(df1, type="full", addCoef.col="black", tl.col="black", tl.srt=45, p.mat=df1, sig.level=7, insig="blank", method="color", col = color, order = "original")
+library(corrplot)
+corrplot(df1, type="full", addCoef.col="black", tl.col="black", tl.srt=45, p.mat=df1, sig.level=7, insig="blank", method="color", col = color, order = "original")
+corrplot(df1, type = "full", addCoef.col = "black", tl.col="black", tl.srt=45, p.mat = df1, sig.level = 7, insig = "blank", method = "color", col = color, order = "original", number.cex = 1.75, addgrid.col = "black")
+library(ggcorrplot)
+install.packages("ggcorrplot")
+library(ggcorrplot)
+ggcorrplot(df1)
+ggcorrplot(df1, method = "circle")
+df = read.table("/Users/zrj/Desktop/cd-xi/pathway_summary_table.txt", header=TRUE, sep="\t")
+df1 = data.frame(df[,-1], row.names=df[,1])
+df1
+ggcorrplot(df1, method = "circle")
+df = read.table("/Users/zrj/Desktop/cd-xi/pathway_summary_table_rel.txt", header=TRUE, sep="\t")
+df1 = data.frame(df[,-1], row.names=df[,1])
+df1
+ggcorrplot(df1, method = "circle")
+ggcorrplot(df1, method = "circle", colors=c("#ffffff", "#ffffff", "#262673"))
+ggcorrplot(df1, method = "circle", colors=c("#ffffff", "#ffffff", "#262673"))+theme_void()
+#Set working directory#
+dir <- "/Users/zrj/Desktop/resources_for_week_away/cd_xi_testes/cd-xi_males_testes_c18neg_limma-pls"#
+setwd(dir)#
+getwd()#
+dir()#
+my_data1 <- read.table (file.choose(), check.names = F,fill = TRUE,header = TRUE,sep = "\t")#
+my_data2 <- read.table (file.choose(), check.names = F,fill = TRUE,header = TRUE,sep = "\t")#
+my_data1$mz<-round(my_data1$mz,4)#
+my_data1$time<-round(my_data1$time,1)#
+my_data2$mz<-round(my_data2$mz,4)#
+my_data2$time<-round(my_data2$time,1)#
+DF2 <- merge(my_data1, my_data2, by=c("mz", "time"))#
+write.table(DF2, file = "cd-xi_testes_c18neg_limma-pls_merged-results.txt",sep = "\t",row.names=F)
+#Set working directory#
+dir <- "/Users/zrj/Desktop/resources_for_week_away/cd_xi_testes/cd-xi_males_testes_hilicpos_limma-pls"#
+setwd(dir)#
+getwd()#
+dir()#
+my_data1 <- read.table (file.choose(), check.names = F,fill = TRUE,header = TRUE,sep = "\t")#
+my_data2 <- read.table (file.choose(), check.names = F,fill = TRUE,header = TRUE,sep = "\t")#
+my_data1$mz<-round(my_data1$mz,4)#
+my_data1$time<-round(my_data1$time,1)#
+my_data2$mz<-round(my_data2$mz,4)#
+my_data2$time<-round(my_data2$time,1)#
+DF2 <- merge(my_data1, my_data2, by=c("mz", "time"))#
+write.table(DF2, file = "cd-xi_testes_hilicpos_limma-pls_merged-results.txt",sep = "\t",row.names=F)

@@ -8,24 +8,24 @@ import os
 
 
 #testdata
-pathToMummichogOutput = "/Users/zrj/Desktop/talefin/test-data/cd-xi-f_adef_lung_c18neg_limma2way-pls/1677524736.87.2way-outer-join-fdr20/tsv/mcg_pathwayanalysis_2way-outer-join-fdr20.xlsx"
+pathToMummichogOutput = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_c18neg_limma2way-pls/1677524736.87.2way-outer-join-fdr20/tsv/mcg_pathwayanalysis_2way-outer-join-fdr20.xlsx"
 
-pathToMummichogInput = "/Users/zrj/Desktop/talefin/test-data/cd-xi-f_adef_lung_c18neg_limma2way-pls/formummichog-outer-join-2way-sigresults-fdr20.txt"
+pathToMummichogInput = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_c18neg_limma2way-pls/formummichog-outer-join-2way-sigresults-fdr20.txt"
 
-pathToFeatureTable = "/Users/zrj/Desktop/talefin/test-data/cd-xi-f_adef_lung_c18neg_featuretable.txt"
+pathToFeatureTable = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_c18neg_featuretable.txt"
 
-pathToClasslist = "/Users/zrj/Desktop/talefin/test-data/cd-xi-f_adef_lung_classlist.txt"
+pathToClasslist = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_classlist.txt"
 
 outputPath = "./output1"
 
 #testdata2
-pathToMummichogOutput = "/Users/zrj/Desktop/talefin/test-data-2/cd-xi_males_testes_hilicpos_limma-pls/1648495652.23.hilicpos_p05vip2/tsv/mcg_pathwayanalysis_hilicpos_p05vip2.xlsx"
+pathToMummichogOutput = "/Users/zrj/Documents/research/scripts/TaleFin/test-data-2/cd-xi_males_testes_hilicpos_limma-pls/1648495652.23.hilicpos_p05vip2/tsv/mcg_pathwayanalysis_hilicpos_p05vip2.xlsx"
 
-pathToMummichogInput = "/Users/zrj/Desktop/talefin/test-data-2/cd-xi_males_testes_hilicpos_limma-pls/hilicpos_formummichog.txt"
+pathToMummichogInput = "/Users/zrj/Documents/research/scripts/TaleFin/test-data-2/cd-xi_males_testes_hilicpos_limma-pls/hilicpos_formummichog.txt"
 
-pathToFeatureTable = "/Users/zrj/Desktop/talefin/test-data-2/cd-xi_males_testes_hilicpos_featuretable.txt"
+pathToFeatureTable = "/Users/zrj/Documents/research/scripts/TaleFin/test-data-2/cd-xi_males_testes_hilicpos_featuretable.txt"
 
-pathToClasslist = "/Users/zrj/Desktop/talefin/test-data-2/cd-xi_males_testes_classlist.txt"
+pathToClasslist = "/Users/zrj/Documents/research/scripts/TaleFin/test-data-2/cd-xi_males_testes_classlist.txt"
 
 outputPath = "./output2"
 
@@ -317,15 +317,18 @@ def writeKEGGcard(keggID, keggDict, featureDict, pathway, c, threshold):
     keggCard += "</div>"
     return keggCard
 
-def writePathwayBlock(pathway, keggDict, featureDict, threshold):
+def writePathwayBlock(pathway, keggDict, featureDict, threshold, keggMaps):
+    keggLink = "https://www.kegg.jp/pathway/map" + keggMaps[pathway.name]
+    for keggID in pathway.keggIDs:
+        keggLink += '+' + keggID
     pathwayTitleButton = """
     <button type="button" class="pathwayButton">
         <div class="pathwayLabel">
             <div class="pathwayName"><b>%s</b></div>
             <div class="pathwaySignificance"><b>%s</b></div>
         </div>
-        <div class="keggLink"><a href=""><b>View Kegg Map</b></a></div>
-    </button>"""%(pathway.name + " - (" + str(pathway.overlapSize) + "/" + str(pathway.pathwaySize) + ")", "p-value: " + str(round(pathway.pValue, 8)))
+        <div class="keggLink"><a href="%s"><b>View Kegg Map</b></a></div>
+    </button>"""%(pathway.name + " - (" + str(pathway.overlapSize) + "/" + str(pathway.pathwaySize) + ")", "p-value: " + str(round(pathway.pValue, 8)), keggLink)
     pathwayContainer = """<div class="pathwayContainer">"""
     c = 0
     for keggID in pathway.reducedNodesKeys:
@@ -334,7 +337,7 @@ def writePathwayBlock(pathway, keggDict, featureDict, threshold):
     pathwayContainer += """</div>"""
     return pathwayTitleButton + pathwayContainer
 
-def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThreshold, keggDict, featureDict, selectionThreshold):
+def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThreshold, keggDict, featureDict, selectionThreshold, keggMaps):
     report = open('report.html', 'w')
     heading = """<!DOCTYPE html>
     <html lang="en">
@@ -354,7 +357,7 @@ def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThres
     """%(os.path.basename(mummichogOutput), str(datetime.now()), pathwayThreshold, featureThreshold)
     report.write(heading)
     for pathway in pathways:
-        pathwayDiv = writePathwayBlock(pathway, keggDict, featureDict, selectionThreshold)
+        pathwayDiv = writePathwayBlock(pathway, keggDict, featureDict, selectionThreshold, keggMaps)
         report.write(pathwayDiv)
     footing = """<script>
     var pathwayButton = document.getElementsByClassName("pathwayButton");
@@ -475,6 +478,127 @@ td {
     stylesheet.write(styles)
     stylesheet.close()
 
+keggPathwayMaps = {
+    'Vitamin A (retinol) metabolism': '00830',
+    'Linoleate metabolism': '00591',
+    'Carbon fixation': 'none found',
+    'Hexose phosphorylation': 'none found',
+    'De novo fatty acid biosynthesis': '00061',
+    'Glycerophospholipid metabolism': '00564',
+    'Pentose phosphate pathway': '00030',
+    'Pyrimidine metabolism': '00240',
+    'Purine metabolism': '00230',
+    'N-Glycan Degradation': 'none found',
+    'Selenoamino acid metabolism': '00450',
+    'Caffeine metabolism': '00232',
+    'Starch and Sucrose Metabolism': '00500',
+    'Pyruvate Metabolism': '00620',
+    'Glycolysis and Gluconeogenesis': '00010',
+    'Prostaglandin formation from arachidonate': '07035',
+    'Glycosylphosphatidylinositol(GPI)-anchor biosynthesis': '00563',
+    'Fatty acid activation': 'none found',
+    'Fatty Acid Metabolism': '01212',
+    'Glutamate metabolism': '00250',
+    'Nitrogen metabolism': '00910',
+    'Nucleotide Sugar Metabolism': '00520',
+    'Glycosphingolipid biosynthesis - ganglioseries': '00604',
+    'Arginine and Proline Metabolism': '00330',
+    'Phosphatidylinositol phosphate metabolism': '00562',
+    'Omega-3 fatty acid metabolism': 'none found',
+    'Hyaluronan Metabolism': 'none found',
+    'Fructose and mannose metabolism': '00051',
+    'Vitamin E metabolism': '00130', 
+    'Pentose and Glucuronate Interconversions': '00040',
+    'Phytanic acid peroxisomal oxidation': 'none found',
+    'Glycosphingolipid metabolism': 'none found',
+    'Glycine, serine, alanine and threonine metabolism': '00260',
+    'Chondroitin sulfate degradation': '00531',
+    'Ascorbate (Vitamin C) and Aldarate Metabolism': '00053',
+    'Galactose metabolism': '00052',
+    'Fatty acid oxidation, peroxisome': '01040',
+    'Keratan sulfate degradation': '00531',
+    'Arachidonic acid metabolism': '00590',
+    'Porphyrin metabolism': '00860',
+    'Propanoate metabolism': '00640',
+    'Beta-Alanine metabolism': '00410',
+    'Leukotriene metabolism': 'none found',
+    'Heparan sulfate degradation': '00531',
+    'Vitamin B3 (nicotinate and nicotinamide) metabolism': '00760',
+    'Alanine and Aspartate Metabolism': '00250',
+    'Methionine and cysteine metabolism': '00270',
+    'Butanoate metabolism': '00650',
+    'Sialic acid metabolism': 'none found',
+    'Proteoglycan biosynthesis': 'none found',
+    'Glycosphingolipid biosynthesis - globoseries': '00603',
+    'Vitamin B1 (thiamin) metabolism': '00730',
+    'Urea cycle/amino group metabolism': 'none found',
+    'TCA cycle': '00020',
+    'N-Glycan biosynthesis': '00510',
+    'C21-steroid hormone biosynthesis and metabolism': '04927',
+    'Lysine metabolism': '00310',
+    'Drug metabolism - cytochrome P450': '00982',
+    'Androgen and estrogen biosynthesis and metabolism': '04913',
+    'Valine, leucine and isoleucine degradation': '00280',
+    'Aminosugars metabolism': '00520',
+    'Drug metabolism - other enzymes': '00983',
+    'Tyrosine metabolism': '00350',
+    'Histidine metabolism': '00340',
+    'Aspartate and asparagine metabolism': '00250',
+    'Squalene and cholesterol biosynthesis': 'none found',
+    'Bile acid biosynthesis': '00120',
+    'Xenobiotics metabolism': '00980',
+    'Tryptophan metabolism': '00380',
+    'Omega-6 fatty acid metabolism': 'none found',
+    'Trihydroxycoprostanoyl-CoA beta-oxidation': 'none found',
+    'Prostaglandin formation from dihomo gama-linoleic acid': 'none found',
+    '1- and 2-Methylnaphthalene degradation': '00626',
+    'Ubiquinone Biosynthesis': '00130',
+    'Vitamin B12 (cyanocobalamin) metabolism': 'none found',
+    'Atrazine degradation': '00791',
+    'Vitamin B6 (pyridoxine) metabolism': '00750',
+    'Dimethyl-branched-chain fatty acid mitochondrial beta-oxidation': 'none found',
+    'Benzoate degradation via CoA ligation': '00362',
+    'Vitamin K metabolism': '00130',
+    'Limonene and pinene degradation': '00903',
+    'O-Glycan biosynthesis': '00512',
+    'Sphingolipid metabolism': '00600',
+    '3-Chloroacrylic acid degradation': 'none found',
+    'Keratan sulfate biosynthesis': '00533',
+    'Glutathione Metabolism': '00480',
+    'Polyunsaturated fatty acid biosynthesis': '01040',
+    'Dynorphin metabolism': 'none found',
+    'Vitamin D': 'none found',
+    'D4&E4-neuroprostanes formation': 'none found',
+    'Geraniol degradation': '00907',
+    'Glycosphingolipid biosynthesis - neolactoseries': '00601',
+    'Mono-unsaturated fatty acid beta-oxidation': 'none found',
+    'CoA Catabolism': 'none found',
+    'Saturated fatty acids beta-oxidation': '00071',
+    'ROS Detoxification': 'none found',
+    'Fatty acid oxidation': '00071',
+    'Glycosaminoglycan degradation': '00531',
+    'Glyoxylate and Dicarboxylate Metabolism': '00630',
+    'Vitamin B9 (folate) metabolism': '00790',
+    'Heparan sulfate biosynthesis': '00534',
+    'Lipoate metabolism': '00785',
+    'Biopterin metabolism': 'none found',
+    'Vitamin H (biotin) metabolism': '00780',
+    'Electron transport chain': '00190',
+    'Blood Group Biosynthesis': 'none found',
+    'Parathio degradation': 'none found',
+    'Glycosphingolipid biosynthesis - lactoseries': '00601',
+    'Vitamin B5 - CoA biosynthesis from pantothenate': '00770',
+    'Alkaloid biosynthesis II': 'none found',
+    '3-oxo-10R-octadecatrienoate beta-oxidation': 'none found',
+    'Carnitine shuttle': 'none found',
+    'Glycerolipid metabolism': '00561',
+    'Vitamin B2 (riboflavin) metabolism': '00740',
+    'Putative anti-Inflammatory metabolites formation from EPA': 'none found',
+    'Di-unsaturated fatty acid beta-oxidation': 'none found',
+    'C5-Branched dibasic acid metabolism': '00660',
+    'R Group Synthesis': 'none found',
+    'Vitamin D3 (cholecalciferol) metabolism': 'none found'
+}
 
 os.mkdir(outputPath)
 os.chdir(outputPath)
@@ -498,6 +622,6 @@ createGraphs(featureDict)
 
 reducePathwayCards(pathways, allIDs, mummichogSelectedFeatureThreshold)
 
-generateHTMLreport(pathways, pathToMummichogOutput, mummichogSignificanceThreshold, mummichogMinimumOverlap, allIDs, featureDict, mummichogSelectedFeatureThreshold)
+generateHTMLreport(pathways, pathToMummichogOutput, mummichogSignificanceThreshold, mummichogMinimumOverlap, allIDs, featureDict, mummichogSelectedFeatureThreshold, keggPathwayMaps)
 generateStylesheet()
 

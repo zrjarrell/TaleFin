@@ -327,7 +327,7 @@ def writePathwayBlock(pathway, keggDict, featureDict, threshold, keggMaps):
             <div class="pathwayName"><b>%s</b></div>
             <div class="pathwaySignificance"><b>%s</b></div>
         </div>
-        <div class="keggLink"><a href="%s"><b>View Kegg Map</b></a></div>
+        <div><a href="%s" class="keggLink" target="_blank">View Kegg Map</a></div>
     </button>"""%(pathway.name + " - (" + str(pathway.overlapSize) + "/" + str(pathway.pathwaySize) + ")", "p-value: " + str(round(pathway.pValue, 8)), keggLink)
     pathwayContainer = """<div class="pathwayContainer">"""
     c = 0
@@ -365,6 +365,7 @@ def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThres
     
     for (i = 0; i < pathwayButton.length; i++) {
         pathwayButton[i].addEventListener("click", function() {
+            if (event.target.classList.contains("keggLink")) return;
             this.classList.toggle("active");
             var content = this.nextElementSibling;
             if (content.style.display === "flex") {
@@ -420,7 +421,10 @@ h2, p {
     width: 90%;
 }
 
-.keggLink {
+.keggLink,
+.keggLink:visited {
+    color: black;
+    font-weight: bold;
     width: 10%;
     min-width: 9em;
     text-align: right;

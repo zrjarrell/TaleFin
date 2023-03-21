@@ -14,9 +14,9 @@ pathToMummichogInput = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/
 
 pathToFeatureTable = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_c18neg_featuretable.txt"
 
-pathToClasslist = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_classlist.txt"
+pathToClasslist = "/Users/zrj/Documents/research/scripts/TaleFin/test-data/cd-xi-f_adef_lung_classlist_pseudo-regression.txt"
 
-outputPath = "./output1"
+outputPath = "./output3"
 
 #testdata2
 pathToMummichogOutput = "/Users/zrj/Documents/research/scripts/TaleFin/test-data-2/cd-xi_males_testes_hilicpos_limma-pls/1648495652.23.hilicpos_p05vip2/tsv/mcg_pathwayanalysis_hilicpos_p05vip2.xlsx"
@@ -33,6 +33,8 @@ outputPath = "./output2"
 mummichogSelectedFeatureThreshold = 0.05
 mummichogSignificanceThreshold = 0.05
 mummichogMinimumOverlap = 4
+
+expSetup = "regression" # 'categorical' or 'regression'
 
 
 ################################################################
@@ -256,17 +258,25 @@ def mapFeaturesToKEGG(featureDict, keggDict):
         for keggID in featureDict[feature].keggMatches:
             keggDict[keggID].sigFeatures += [feature]
 
-def createGraphs(featureDict):
+def createGraphs(featureDict, expSetup):
     graphDir = os.path.join('./graphs')
     os.mkdir(graphDir)
-    for feature in featureDict:
-        graph = sns.boxplot(x='class', y='intensity', data=featureDict[feature].intensityTable)
-        graph = sns.stripplot(x='class', y='intensity', data=featureDict[feature].intensityTable, color='orange', jitter=0.2, size=2.5)
-        plt.title(featureDict[feature].label)
-        filePath = os.path.join(graphDir, featureDict[feature].label + '.pdf')
-        plt.savefig(filePath)
-        plt.clf()
-        featureDict[feature].filePath = filePath
+    if expSetup != 'categorical' and expSetup != 'regression':
+        print("Please specify your type of analysis, 'regression' or 'categorical'.")
+        return
+    else:
+        for feature in featureDict:
+            if expSetup == 'categorical':
+                graph = sns.boxplot(x='class', y='intensity', data=featureDict[feature].intensityTable)
+                graph = sns.stripplot(x='class', y='intensity', data=featureDict[feature].intensityTable, color='orange', jitter=0.2, size=2.5)
+            elif expSetup == 'regression':
+                graph = sns.regplot(x='class', y='intensity', data=featureDict[feature].intensityTable, line_kws={"color":"r","alpha":0.7,"lw":5})
+            plt.title(featureDict[feature].label)
+            filePath = os.path.join(graphDir, featureDict[feature].label + '.pdf')
+            plt.savefig(filePath)
+            plt.clf()
+            featureDict[feature].filePath = filePath
+        
 
 def reducePathwayCards(pathways, keggNodes, selectionThreshold):
     for pathway in pathways:
@@ -622,7 +632,7 @@ allIDs = buildKEGGNodes(pathways, annotationsTable, mummichogInput)
 featureDict = compileFeatureData(features, allIDs, mummichogSelectedFeatureThreshold, classes)
 mapFeaturesToKEGG(featureDict, allIDs)
 
-createGraphs(featureDict)
+createGraphs(featureDict, expSetup)
 
 reducePathwayCards(pathways, allIDs, mummichogSelectedFeatureThreshold)
 

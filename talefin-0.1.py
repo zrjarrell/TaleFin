@@ -34,11 +34,12 @@ mummichogSelectedFeatureThreshold = 0.05
 mummichogSignificanceThreshold = 0.05
 mummichogMinimumOverlap = 4
 
-expSetup = "regression" # 'categorical' or 'regression'
+expSetup = "classification" # 'classification' or 'regression'
 
 
 ################################################################
 
+#builds pathway objects. Intended to store individual pathways with related KEGG IDs, metabolites and statistical outputs from mummichog output
 class Pathway:
     def __init__(self, sigPathways, pathwayIndex):
         self.name = sigPathways.iloc[pathwayIndex, 0]
@@ -54,7 +55,8 @@ class Pathway:
         print("p-value: " + str(self.pValue))
         print("KEGG IDs: " + str(self.keggIDs))
 
-class KEGGNodes:
+#builds KEGG objects which can be referenced from the pathway.keggIDs list. IDs are keys to objects stored in a dictionary
+class KEGGNode:
     def __init__(self, keggID, path, annotations):
         features = annotations[annotations['id']==keggID]
         self.id = keggID
@@ -67,11 +69,13 @@ class KEGGNodes:
         self.pathwayNames = [path.name]
         self.sigFeatures = []
     
+    #adds additional pathways to pathway list of object. Used to handle multiple pathways for one KEGGNode and limit object redundancy
     def addPathway(self, newPathway):
         self.pathways = self.pathways + [newPathway]
         self.pathwayNames += [newPathway.name]
     
-    def addTimesStats(self, inputList):
+    #uses self.mzs and self.times to find matching pvalue and tstatistic from mummichog input table
+    def addStats(self, inputList):
         for i in range(0, len(self.mzs)):
             matches = inputList[(inputList['roundMZ']==self.mzs[i]) & (inputList['roundTime']==self.times[i])]
             matches.drop_duplicates()
@@ -91,6 +95,7 @@ class KEGGNodes:
         print('p-values: ' + str(self.pvalues))
         print('t-statistics: ' + str(self.tstatistics))
 
+#stores mz feature specific information
 class featureNode:
     def __init__(self, unique, uniqueList):
         self.label = str(uniqueList.iloc[unique, 1]) + '_' + str(uniqueList.iloc[unique, 2])
@@ -98,24 +103,19 @@ class featureNode:
         self.time = uniqueList.iloc[unique, 2]
         self.keggMatches = []
 
+#takes mummichog v1 output and splits into pathway results and annotation table
+#pathway table filters only for selected pathways (based on overlap size )
 def splitMummichogOutput(path, overlapMin, pvalueMax):
     wholeOutput = pd.read_excel(path)
     splitIndex = wholeOutput[wholeOutput['pathway']=="Annotation for metabolites in significant pathways"].index[0]
     pathwayResults = wholeOutput.iloc[:(splitIndex - 1), :]
-    bigPathways = pathwayResults[pathwayResults['overlap_size'] >= overlapMin]
-    sigPathways = bigPathways[bigPathways['p-value'] < pvalueMax].reset_index(drop=True)
+    sigPathways = pathwayResults[(pathwayResults['overlap_size'] >= overlapMin) & (pathwayResults['p-value'] < pvalueMax)].reset_index(drop=True)
     annotations = wholeOutput.iloc[(splitIndex + 1):, :6]
     annotations.columns = annotations.iloc[0, :]
     annotations = annotations.iloc[1:,].reset_index(drop=True)
     return sigPathways, annotations
 
-def truncate(n, decimals=0):
-    expoN = n * 10 ** decimals
-    if abs(expoN * 10) % 10 == 5:
-        return math.floor(expoN)/ 10 ** decimals
-    else:
-        return properRound(n, decimals)
-
+#rounds up on 5 at deciding decimal position, regardless of outcome (decimal < 0 works on left of decimal position)
 def properRound(n, decimals=0):
     expoN = n * 10 ** decimals
     if abs(expoN) - abs(math.floor(expoN)) < 0.5:
@@ -126,6 +126,7 @@ def properRound(n, decimals=0):
         return int(result)
     return result
 
+#rounds down at specified decimal position (decimal < 0 works on left of decimal position)
 def floorRound(n, decimals=0):
     expoN = n * 10 ** decimals
     result = math.floor(expoN) / 10 ** decimals
@@ -133,6 +134,7 @@ def floorRound(n, decimals=0):
         return int(result)
     return result
 
+#rounds up at specified decimal position (decimal < 0 works on left of decimal position)
 def ceilRound(n, decimals=0):
     expoN = n * 10 ** decimals
     result = math.ceil(expoN) / 10 ** decimals
@@ -140,6 +142,13 @@ def ceilRound(n, decimals=0):
         return int(result)
     return result
 
+#adds three new sets of mz and time to table used for mummichog input: traditional rounding, the floor and the ceiling.
+#this is essential for capturing all data when aligning between the mummichog input, the original feature table, and the mummichog annotations
+#mummichog v1 does not account for issues with python's inbuilt round() function [floating point representation]
+#additionally, any rounding of feature mz or time that may have occurred during upstream analysis in R could introduce discrepancies between tables
+#R uses a fourth rounding method, statistical rounding (or "bankers rounding").
+#building this set of three references prior to alignment with the feature table and mummichog annotations will ensure all data gets
+#captured at the correct precision of mz and time measurements
 def floorCeilRoundInputs(inputList, MZdecimal=4, timeDecimal=0):
     floorMZs = []
     ceilMZs = []
@@ -162,14 +171,15 @@ def floorCeilRoundInputs(inputList, MZdecimal=4, timeDecimal=0):
     inputList['roundTime'] = roundTimes
     return inputList
 
-def fixOutputRounding(annotations, inputList):
+#aligns annotations with mummichog input. Will replace mz and time columns in mummichog annotations with the correct mz and time
+#which were found to match in the mummichog input
+def fixAnnotationRounding(annotations, inputList):
     newAnnotations = pd.DataFrame(columns=annotations.columns)
     newAnnotations['mz'] = ''
     newAnnotations['time'] = ''
     for row in annotations.index:
-        matches = inputList[inputList['roundMZ']==annotations.iloc[row, 0]]
-        if len(matches) < 1:
-            matches = inputList[(inputList['floorMZ'] == annotations.iloc[row, 0]) | (inputList['ceilMZ'] == annotations.iloc[row, 0])]
+        #searches two possible results of rounding (floor and ceiling) and finally assigns traditionally rounded values
+        matches = inputList[(inputList['floorMZ'] == annotations.iloc[row, 0]) | (inputList['ceilMZ'] == annotations.iloc[row, 0])]
         matches = matches.drop_duplicates()
         for match in matches.index: 
             rowData = annotations.iloc[row, :]
@@ -178,39 +188,45 @@ def fixOutputRounding(annotations, inputList):
             newAnnotations.loc[len(newAnnotations)] = rowData
     return newAnnotations
 
-def fixFeatureTableRounding(featureTable, inputList, MZdecimal=4, timeDecimal=0):
-    newFeatureTable = pd.DataFrame(columns=featureTable.columns)
-    newFeatureTable['roundMZ'] = ''
-    newFeatureTable['roundTime'] = ''
+#similar to fixAnnotationRounding, this function creates an mz and time pair for the feature table that will correctly align with that in the mummichog input
+def fixFeatureTableRounding(featureTable, inputList, annotations, MZdecimal=4, timeDecimal=0):
+    selectedFeatureTable = pd.DataFrame(columns=featureTable.columns)
+    selectedFeatureTable['roundMZ'] = ''
+    selectedFeatureTable['roundTime'] = ''
+    #using annotations table to reduce inputList to only those which will be included in the output, cuts time needed significantly
+    annotatedFeatures = annotations.iloc[:, -2:].drop_duplicates(ignore_index=True)
+    annotatedFeatures.columns = ['roundMZ', 'roundTime']
+    mappedInputs = inputList.merge(annotatedFeatures, how='inner', on=['roundMZ','roundTime'])
+    #searches for round-proof matches between feature table and and annotated input mzs
     for feature in featureTable.index:
-        roundMZ = properRound(featureTable.loc[feature, :]['mz'], MZdecimal)
-        roundTime = properRound(featureTable.loc[feature, :]['time'], timeDecimal)
-        matches = inputList[(inputList['roundMZ']==roundMZ) & (inputList['roundTime']==roundTime)]
-        if len(matches) < 1:
-            floorMZ = floorRound(featureTable.loc[feature, :]['mz'], MZdecimal)
-            floorTime = floorRound(featureTable.loc[feature, :]['time'], timeDecimal)
-            ceilMZ = ceilRound(featureTable.loc[feature, :]['mz'], MZdecimal)
-            ceilTime = ceilRound(featureTable.loc[feature, :]['time'], timeDecimal)
-            matches = inputList[((inputList['roundMZ']==floorMZ) & (inputList['roundTime']==floorTime)) |
-                                ((inputList['roundMZ']==floorMZ) & (inputList['roundTime']==ceilTime)) |
-                                ((inputList['roundMZ']==ceilMZ) & (inputList['roundTime']==floorTime)) |
-                                ((inputList['roundMZ']==ceilMZ) & (inputList['roundTime']==ceilTime))]
+        floorMZ = floorRound(featureTable.loc[feature, :]['mz'], MZdecimal)
+        floorTime = floorRound(featureTable.loc[feature, :]['time'], timeDecimal)
+        ceilMZ = ceilRound(featureTable.loc[feature, :]['mz'], MZdecimal)
+        ceilTime = ceilRound(featureTable.loc[feature, :]['time'], timeDecimal)
+        matches = mappedInputs[((mappedInputs['roundMZ']==floorMZ) & (mappedInputs['roundTime']==floorTime)) |
+                            ((mappedInputs['roundMZ']==floorMZ) & (mappedInputs['roundTime']==ceilTime)) |
+                            ((mappedInputs['roundMZ']==ceilMZ) & (mappedInputs['roundTime']==floorTime)) |
+                            ((mappedInputs['roundMZ']==ceilMZ) & (mappedInputs['roundTime']==ceilTime))]
         matches = matches.drop_duplicates()
         for match in matches.index:
             rowData = featureTable.iloc[feature, :]
             rowData['roundMZ'] = matches.loc[match, 'roundMZ']
             rowData['roundTime'] = matches.loc[match, 'roundTime']
-            newFeatureTable.loc[len(newFeatureTable)] = rowData
+            selectedFeatureTable.loc[len(selectedFeatureTable)] = rowData
     if timeDecimal <= 0:
-        newFeatureTable['roundTime'] = newFeatureTable['roundTime'].astype(int)
-    return newFeatureTable
+        selectedFeatureTable['roundTime'] = selectedFeatureTable['roundTime'].astype(int)
+    #returns reduced featureTable (only annotated features) with a roundMZ and roundTime matching that in the inputList
+    return selectedFeatureTable
 
+#iterates through pathway table to build pathway objects
 def buildPathways(sigPathways):
     pathways = []
     for path in sigPathways.index:
         pathways += [Pathway(sigPathways, path)]
     return pathways
 
+#iterates through pathway objects in pathway list to build KEGGNode objects, makes sure no redundant Nodes are made
+#stores in library, KEGG ID is the key
 def buildKEGGNodes(pathways, annotations, inputList):
     allKEGGIDs = {}
     for path in pathways:
@@ -218,21 +234,25 @@ def buildKEGGNodes(pathways, annotations, inputList):
             if keggID in allKEGGIDs:
                 allKEGGIDs[keggID].addPathway(path)
             else:
-                allKEGGIDs[keggID] = KEGGNodes(keggID, path, annotations)
+                allKEGGIDs[keggID] = KEGGNode(keggID, path, annotations)
     for keggID in allKEGGIDs:
-        allKEGGIDs[keggID].addTimesStats(inputList)
+        allKEGGIDs[keggID].addStats(inputList)
     return allKEGGIDs
 
+#iterates through list of features to build feature objects, stored in dictionary
 def buildUniqueFeatures(fullList):
     uniqueFeatures = {}
     uniqueList = fullList.drop_duplicates(subset=['mz', 'time']).reset_index(drop=True)
     for unique in uniqueList.index:
         uniqueFeatures[str(uniqueList.iloc[unique, 1]) + '_' + str(uniqueList.iloc[unique, 2])] = featureNode(unique, uniqueList)
+    #goes back through list with duplicates to add matched KEGG IDs to each unique feature
     for row in fullList.index:
         uniqueFeatures[str(fullList.iloc[row, 1]) + '_' + str(fullList.iloc[row, 2])].keggMatches += [fullList.iloc[row, 0]]
     return uniqueFeatures, uniqueList
 
+#generates feature objects
 def compileFeatureData(features, nodes, threshold, classes):
+    #iterates through each node to build a list of all features, includes duplicates
     df = pd.DataFrame(columns= ['id', 'mz', 'time'])
     d = 0
     for node in nodes:
@@ -242,9 +262,11 @@ def compileFeatureData(features, nodes, threshold, classes):
                 df.loc[d] = [nodes[node].id, nodes[node].mzs[c], nodes[node].times[c]]
                 d += 1
             c += 1
+    #uses list to create unique feature objects
     uniqueFeatures, uniqueList = buildUniqueFeatures(df)
     features = features.iloc[:, 2:].rename(columns={'roundMZ': 'mz', 'roundTime': 'time'})
     df = uniqueList.merge(features, how='inner', on=['mz','time'])
+    #generates an intensity table with independent variable and feature intensity and stores it in each feature object
     for feature in uniqueFeatures:
         featureData = df[(df['mz']== uniqueFeatures[feature].mz) & (df['time']== uniqueFeatures[feature].time)]
         featureData = featureData.iloc[:, 3:].T
@@ -253,20 +275,23 @@ def compileFeatureData(features, nodes, threshold, classes):
         uniqueFeatures[feature].intensityTable = featureData
     return uniqueFeatures
 
+#reads connected KEGG IDs from each feature object to create a link from KEGG ID to object
 def mapFeaturesToKEGG(featureDict, keggDict):
     for feature in featureDict:
         for keggID in featureDict[feature].keggMatches:
             keggDict[keggID].sigFeatures += [feature]
 
+#makes graphs for each feature object. Makes scatter plot with linear reg line for expSetup = 'regression' or
+#a boxplot for expSetup = 'classification'. saves file path in object
 def createGraphs(featureDict, expSetup):
     graphDir = os.path.join('./graphs')
     os.mkdir(graphDir)
-    if expSetup != 'categorical' and expSetup != 'regression':
+    if expSetup != 'classification' and expSetup != 'regression':
         print("Please specify your type of analysis, 'regression' or 'categorical'.")
         return
     else:
         for feature in featureDict:
-            if expSetup == 'categorical':
+            if expSetup == 'classification':
                 graph = sns.boxplot(x='class', y='intensity', data=featureDict[feature].intensityTable)
                 graph = sns.stripplot(x='class', y='intensity', data=featureDict[feature].intensityTable, color='orange', jitter=0.2, size=2.5)
             elif expSetup == 'regression':
@@ -276,9 +301,9 @@ def createGraphs(featureDict, expSetup):
             plt.savefig(filePath)
             plt.clf()
             featureDict[feature].filePath = filePath
-        
 
-def reducePathwayCards(pathways, keggNodes, selectionThreshold):
+#handles multiple KEGG IDs represented by the same set of annotated features. For duplicates, summarizes duplications in a label attribute
+def reducePathwayCards(pathways, keggNodes):
     for pathway in pathways:
         pathway.reducedNodesLabels = []
         pathway.reducedNodesKeys = []
@@ -294,6 +319,7 @@ def reducePathwayCards(pathways, keggNodes, selectionThreshold):
                 pathway.reducedNodesLabels += [newID]
                 pathway.reducedNodesKeys += [newID]
 
+#writes card display to report.html
 def writeKEGGcard(keggID, keggDict, featureDict, pathway, c, threshold):
     keggCard = """<div class="keggCard">
         <p><b>%s</b></p>
@@ -327,6 +353,7 @@ def writeKEGGcard(keggID, keggDict, featureDict, pathway, c, threshold):
     keggCard += "</div>"
     return keggCard
 
+#writes pathway container for report.html
 def writePathwayBlock(pathway, keggDict, featureDict, threshold, keggMaps):
     keggLink = "https://www.kegg.jp/pathway/map" + keggMaps[pathway.name]
     for keggID in pathway.keggIDs:
@@ -347,8 +374,12 @@ def writePathwayBlock(pathway, keggDict, featureDict, threshold, keggMaps):
     pathwayContainer += """</div>"""
     return pathwayTitleButton + pathwayContainer
 
-def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThreshold, keggDict, featureDict, selectionThreshold, keggMaps):
+#writes report.html for user friendly mummichog summary
+def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThreshold, keggDict, featureDict, selectionThreshold, keggMaps, organism="map"):
     report = open('report.html', 'w')
+    globalLink = "https://www.kegg.jp/pathway/" + organism + "01100"
+    for keggID in keggDict:
+        globalLink += '+' + keggID
     heading = """<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -359,12 +390,15 @@ def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThres
     <body>
     <div class="heading">
         <h2><b>TaleFin Report</b></h2>
-        <p><b>Report for mummichog output:</b> %s</p>
+        <div>
+            <p><b>Report for mummichog output:</b> %s</p>
+            <p><a href="%s" class="keggLink" target="_blank">View Global Metabolism</a></p>
+        </div>
         <p><b>Date:</b> %s</p>
         <p><b>Pathway significance threshold:</b> %s</p>
         <p><b>Required selected features:</b> %s</p>
     </div>
-    """%(os.path.basename(mummichogOutput), str(datetime.now()), pathwayThreshold, featureThreshold)
+    """%(os.path.basename(mummichogOutput), globalLink, str(datetime.now()), pathwayThreshold, featureThreshold)
     report.write(heading)
     for pathway in pathways:
         pathwayDiv = writePathwayBlock(pathway, keggDict, featureDict, selectionThreshold, keggMaps)
@@ -391,6 +425,7 @@ def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThres
     report.write(footing)
     report.close()
 
+#writes a style.css document for styling of report.html
 def generateStylesheet():
     stylesheet = open('style.css', 'w')
     styles = """
@@ -401,6 +436,16 @@ def generateStylesheet():
 .heading {
     margin: 40px 10px 0;
 }
+
+.heading > div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.heading > div > p {
+    margin: 0;
+}
+
 h2, p {
     padding: 4px;
 }
@@ -492,6 +537,7 @@ td {
     stylesheet.write(styles)
     stylesheet.close()
 
+#incomplete dictionary of kegg pathway map numbers for use in building kegg map links
 keggPathwayMaps = {
     'Vitamin A (retinol) metabolism': '00830',
     'Linoleate metabolism': '00591',
@@ -624,8 +670,8 @@ mummichogInput = floorCeilRoundInputs(mummichogInput, 4)
 sigPathwayTable, annotationsTable = splitMummichogOutput(pathToMummichogOutput, mummichogMinimumOverlap, mummichogSignificanceThreshold)
 pathways = buildPathways(sigPathwayTable)
 
-annotationsTable = fixOutputRounding(annotationsTable, mummichogInput)
-features = fixFeatureTableRounding(features, mummichogInput)
+annotationsTable = fixAnnotationRounding(annotationsTable, mummichogInput)
+features = fixFeatureTableRounding(features, mummichogInput, annotationsTable)
 
 allIDs = buildKEGGNodes(pathways, annotationsTable, mummichogInput)
 
@@ -634,8 +680,8 @@ mapFeaturesToKEGG(featureDict, allIDs)
 
 createGraphs(featureDict, expSetup)
 
-reducePathwayCards(pathways, allIDs, mummichogSelectedFeatureThreshold)
+reducePathwayCards(pathways, allIDs)
 
-generateHTMLreport(pathways, pathToMummichogOutput, mummichogSignificanceThreshold, mummichogMinimumOverlap, allIDs, featureDict, mummichogSelectedFeatureThreshold, keggPathwayMaps)
+generateHTMLreport(pathways, pathToMummichogOutput, mummichogSignificanceThreshold, mummichogMinimumOverlap, allIDs, featureDict, mummichogSelectedFeatureThreshold, keggPathwayMaps, "hsa")
 generateStylesheet()
 

@@ -12,8 +12,11 @@ import os
 #makes graphs for each feature object. Makes scatter plot with linear reg line for expSetup = 'regression' or
 #a boxplot for expSetup = 'classification'. saves file path in object
 def createGraphs(featureDict, expSetup):
-    graphDir = os.path.join('./graphs')
-    os.mkdir(graphDir)
+    os.mkdir(os.path.join('./graphs'))
+    pdfDir = os.path.join('./graphs/pdfs')
+    svgDir = os.path.join('./graphs/svgs')
+    os.mkdir(pdfDir)
+    os.mkdir(svgDir)
     if expSetup != 'classification' and expSetup != 'regression':
         print("Please specify your type of analysis, 'regression' or 'categorical'.")
         return
@@ -25,10 +28,13 @@ def createGraphs(featureDict, expSetup):
             elif expSetup == 'regression':
                 graph = sns.regplot(x='class', y='intensity', data=featureDict[feature].intensityTable, line_kws={"color":"r","alpha":0.7,"lw":5})
             plt.title(featureDict[feature].label)
-            filePath = os.path.join(graphDir, featureDict[feature].label + '.pdf')
-            plt.savefig(filePath)
+            pdfPath = os.path.join(pdfDir, featureDict[feature].label + '.pdf')
+            svgPath = os.path.join(svgDir, featureDict[feature].label + '.svg')
+            plt.savefig(pdfPath)
+            plt.savefig(svgPath)
             plt.clf()
-            featureDict[feature].filePath = filePath
+            featureDict[feature].pdfPath = pdfPath
+            featureDict[feature].svgPath = svgPath
 
 #handles multiple KEGG IDs represented by the same set of annotated features. For duplicates, summarizes duplications in a label attribute
 def reducePathwayCards(pathways, keggNodes):
@@ -54,7 +60,7 @@ def writeKEGGcard(keggID, keggDict, featureDict, pathway, c, threshold):
         <div class="graphContainer">
     """%(pathway.reducedNodesLabels[c])
     for feature in keggDict[keggID].sigFeatures:
-        keggCard += """<img src="%s" width="450">"""%(featureDict[feature].filePath)
+        keggCard += """<img src="%s" width="450">"""%(featureDict[feature].svgPath)
     keggCard += """</div>
     <table>
         <tr>
@@ -157,110 +163,110 @@ def generateHTMLreport(pathways, mummichogOutput, pathwayThreshold, featureThres
 def generateStylesheet():
     stylesheet = open('style.css', 'w')
     styles = """
-        * {
+    * {
     font-family: Arial;
-}
+    }
 
-.heading {
-    margin: 40px 10px 0;
-}
+    .heading {
+        margin: 40px 10px 0;
+    }
 
-.heading > div {
-    display: flex;
-    justify-content: space-between;
-}
+    .heading > div {
+        display: flex;
+        justify-content: space-between;
+    }
 
-.heading > div > p {
-    margin: 0;
-}
+    .heading > div > p {
+        margin: 0;
+    }
 
-h2, p {
-    padding: 4px;
-}
+    h2, p {
+        padding: 4px;
+    }
 
-.pathwayButton {
-    padding: 16px;
-    width: 100%;
-    margin: 2px 0 0 0;
-    border: none;
-    text-align: left;
-    outline: none;
-    font-size: 15px;
-    cursor: pointer;
-    background-color: rgb(208, 182, 254);
-    color: #111;
-    display: flex;
-    justify-content: space-between;
-    border-radius: 8px;
-}
+    .pathwayButton {
+        padding: 16px;
+        width: 100%;
+        margin: 2px 0 0 0;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+        cursor: pointer;
+        background-color: rgb(208, 182, 254);
+        color: #111;
+        display: flex;
+        justify-content: space-between;
+        border-radius: 8px;
+    }
 
-.active, .pathwayButton:hover {
-    background-color: rgb(171, 122, 255);
-}
+    .active, .pathwayButton:hover {
+        background-color: rgb(171, 122, 255);
+    }
 
-.pathwayLabel {
-    display: flex;
-    justify-content: space-between;
-    width: 90%;
-}
+    .pathwayLabel {
+        display: flex;
+        justify-content: space-between;
+        width: 90%;
+    }
 
-.keggLink,
-.keggLink:visited {
-    color: black;
-    font-weight: bold;
-    width: 10%;
-    min-width: 9em;
-    text-align: right;
-}
+    .keggLink,
+    .keggLink:visited {
+        color: black;
+        font-weight: bold;
+        width: 10%;
+        min-width: 9em;
+        text-align: right;
+    }
 
-.pathwayContainer {
-    display: none;
-    padding: 16px;
-    font-size: 90%;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+    .pathwayContainer {
+        display: none;
+        padding: 16px;
+        font-size: 90%;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-.keggCard {
-    min-width: 475px;
-    flex-grow: 1;
-    background-color: rgb(181, 226, 254);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-radius: 8px;
-}
+    .keggCard {
+        min-width: 475px;
+        flex-grow: 1;
+        background-color: rgb(181, 226, 254);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-radius: 8px;
+    }
 
-.graphContainer {
-    width: 450px;
-    height: 345px;
-    overflow-y: scroll;
-    overflow-x: hidden;
-}
+    .graphContainer {
+        width: 450px;
+        height: 345px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+    }
 
-table {
-    border-collapse: collapse;
-    margin: 8px;
-}
+    table {
+        border-collapse: collapse;
+        margin: 8px;
+    }
 
-th, td {
-    border: 1px solid rgb(117, 201, 254);
-    padding: 0.5em;
-    text-align: left;
-}
+    th, td {
+        border: 1px solid rgb(117, 201, 254);
+        padding: 0.5em;
+        text-align: left;
+    }
 
-th {
-    background-color: rgb(197, 233, 255);
-}
+    th {
+        background-color: rgb(197, 233, 255);
+    }
 
-td {
-    background-color: rgb(211, 238, 255);
-}
+    td {
+        background-color: rgb(211, 238, 255);
+    }
 
-.significant {
-    color: rgb(160, 0, 0);
-    font-weight: bold;
-}
+    .significant {
+        color: rgb(160, 0, 0);
+        font-weight: bold;
+    }
     """
     stylesheet.write(styles)
     stylesheet.close()

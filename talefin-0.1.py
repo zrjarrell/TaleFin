@@ -55,12 +55,14 @@ mummichogVersion = 1
 with open('keggMapsIDs.json') as json_file:
     keggPathwayMaps = json.load(json_file)
 
+if mummichogVersion == 1:
+    import v1mummichogIO
+
 os.mkdir(outputPath)
 os.chdir(outputPath)
 mummichogInput = pd.read_table(pathToMummichogInput, sep="\t")
 
 if mummichogVersion == 1:
-    import v1mummichogIO
     classes = pd.read_table(pathToClasslist, sep="\t", index_col = 0)
     features = pd.read_table(pathToFeatureTable, sep="\t")
     mummichogInput = v1mummichogIO.floorCeilRoundInputs(mummichogInput, 4)
